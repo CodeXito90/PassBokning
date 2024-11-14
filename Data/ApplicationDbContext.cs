@@ -1,34 +1,35 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PassBokning.Models;
 
 namespace PassBokning.Data
 {
-    public class ApplicationDbContext : IdentityDbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
         }
-        public DbSet <GymClass> GymClass { get; set; }
+        public DbSet<GymClass> GymClasses { get; set; }
+        public DbSet<ApplicationUserGymClass> ApplicationUserGymClasses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<ApplicationUserGymClass>()
-                .HasKey(a => new { a.ApplicationUserId, a.GymClassId });
+                .HasKey(aug => new { aug.ApplicationUserId, aug.GymClassId });
 
             modelBuilder.Entity<ApplicationUserGymClass>()
-                .HasOne(a => a.ApplicationUser)
+                .HasOne(aug => aug.ApplicationUser)
                 .WithMany(u => u.AttendedClasses)
-                .HasForeignKey(a => a.ApplicationUserId);
+                .HasForeignKey(aug => aug.ApplicationUserId);
 
             modelBuilder.Entity<ApplicationUserGymClass>()
-                .HasOne(a => a.GymClass)
+                .HasOne(aug => aug.GymClass)
                 .WithMany(gc => gc.AttendingMembers)
-                .HasForeignKey(a => a.GymClassId);
+                .HasForeignKey(aug => aug.GymClassId);
         }
-
     }
 }

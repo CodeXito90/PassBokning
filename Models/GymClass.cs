@@ -4,9 +4,9 @@
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        DateTime StartTime { get; set; }
-        TimeSpan Duration { get; set; }
-        DateTime EndTime { get {  return StartTime + Duration; } }
+        public DateTime StartTime { get; set; }
+        public TimeSpan Duration { get; set; }
+        public DateTime EndTime { get {  return StartTime + Duration; } }
         public string Description { get; set; }
 
         public ICollection <ApplicationUserGymClass> AttendingMembers { get; set; }
