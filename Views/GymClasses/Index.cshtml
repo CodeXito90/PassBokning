@@ -6,9 +6,13 @@
 
 <h1>Index</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+@if (User.Identity.IsAuthenticated)
+{
+    <p>
+        <a asp-action="Create">Create New</a>
+    </p>
+}
+
 <table class="table">
     <thead>
         <tr>
@@ -44,10 +48,15 @@
                     @Html.DisplayFor(modelItem => item.Description)
                 </td>
                 <td>
-                    <a asp-action="BookingToggle" asp-route-id="@item.Id">Book</a> |
-                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                    @* Endast inloggade användare se länkarna Book, Edit och Delete *@
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <a asp-action="BookingToggle" asp-route-id="@item.Id">Book</a> <text>|</text>
+                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> <text>|</text>
+                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a> <text>|</text>
+                    }
+                    @* Lämnade Details-länken utanför if-satsen eftersom den ska vara tillgänglig för alla besökare *@
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a>
                 </td>
             </tr>
         }

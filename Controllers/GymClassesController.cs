@@ -27,8 +27,6 @@ namespace PassBokning.Controllers
         [Authorize]  // Only logged in users can book this feature
         public async Task<IActionResult> BookingToggle(int? id)
         {
-            if (id == null) return NotFound();
-
             // Get the current user
             var userId = _userManager.GetUserId(User);
             if (userId == null) return NotFound();
@@ -46,7 +44,7 @@ namespace PassBokning.Controllers
 
             if (attending == null)
             {
-                // User is not booked - add booking
+                // If the user is not booked - add booking
                 var booking = new ApplicationUserGymClass
                 {
                     GymClassId = gymClass.Id,
@@ -56,7 +54,7 @@ namespace PassBokning.Controllers
             }
             else
             {
-                // User is already booked - remove booking
+                // remove booking
                 gymClass.AttendingMembers.Remove(attending);
             }
 
@@ -91,16 +89,18 @@ namespace PassBokning.Controllers
             return View(gymClass);
         }
 
+        // Index och Details behöver inte [Authorize] eftersom alla ska kunna se passen
         // GET: GymClasses/Create
+        [Authorize]
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: GymClasses/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+       
         [HttpPost]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,StartTime,Duration,Description")] GymClass gymClass)
         {
@@ -129,6 +129,7 @@ namespace PassBokning.Controllers
         }
 
         // GET: GymClasses/Edit/5
+        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -148,6 +149,7 @@ namespace PassBokning.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description")] GymClass gymClass)
         {
@@ -180,6 +182,7 @@ namespace PassBokning.Controllers
         }
 
         // GET: GymClasses/Delete/5
+        [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -199,6 +202,7 @@ namespace PassBokning.Controllers
 
         // POST: GymClasses/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
