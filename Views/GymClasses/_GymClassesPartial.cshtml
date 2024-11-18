@@ -1,0 +1,38 @@
+﻿@model IndexGymClassViewModel
+
+<tr>
+    <td>
+        @Html.DisplayFor(modelItem => Model.Name)
+    </td>
+    <td>
+        @Html.DisplayFor(modelItem => Model.StartTime)
+    </td>
+    <td>
+        @Html.DisplayFor(modelItem => Model.Duration)
+    </td>
+    <td>
+        @Html.DisplayFor(modelItem => Model.Description)
+    </td>
+    <td>
+        @if (Model.StartTime > DateTime.Now)
+        {
+
+
+            @if (User.Identity.IsAuthenticated)
+            {
+                <a asp-action="BookingToggle" asp-route-id="@Model.Id" class="btn @(Model.Attending ? "btn-danger" :
+                 "btn-success")">
+                    @(Model.Attending ? "Cancel" : "Book")
+                </a>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info">Details</a>
+                @if (User.IsInRole("Admin"))
+                {
+
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+
+                }
+            }
+        }
+    </td>
+</tr>

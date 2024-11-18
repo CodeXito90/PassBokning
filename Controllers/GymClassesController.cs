@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PassBokning.Data;
 using PassBokning.Models;
+using PassBokning.Models.ViewModels;
 
 namespace PassBokning.Controllers
 {
@@ -23,10 +24,37 @@ namespace PassBokning.Controllers
             _userManager = userManager;
         }
 
+        // GET: GymClasses
+        [AllowAnonymous]
+        public async Task<IActionResult> Index()
+        {
+            var userId = _userManager.GetUserId(User);
+            var gymClasses = await _context.GymClasses
+                .Include(g => g.AttendingMembers)
+                .ThenInclude(a => a.ApplicationUser)
+                .Where(g => g.StartTime > DateTime.Now)
+                .ToListAsync();
+
+            var model = gymClasses.Select(g => new IndexGymClassViewModel
+            {
+                Id = g.Id,
+                Name = g.Name,
+                StartTime = g.StartTime,
+                Duration = g.Duration,
+                Description = g.Description,
+                Attending = g.AttendingMembers.Any(a => a.ApplicationUserId == userId)
+
+            }).ToList();
+
+
+            return View(model);
+        }
+
         //Bookings feature
-        [Authorize]  // Only logged in users can book this feature
+        [Authorize(Roles ="Admin")]  // Only logged in users can book this feature
         public async Task<IActionResult> BookingToggle(int? id)
         {
+            if (id == null) return NotFound();
             // Get the current user
             var userId = _userManager.GetUserId(User);
             if (userId == null) return NotFound();
@@ -62,11 +90,71 @@ namespace PassBokning.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-    
-    // GET: GymClasses
-    public async Task<IActionResult> Index()
+
+        // GET: GymClasses
+        [AllowAnonymous]
+        public async Task<IActionResult> History()
         {
-            return View(await _context.GymClasses.ToListAsync());
+            var gymClasses = await _context.GymClasses
+                .Where(g => g.StartTime < DateTime.Now)
+                .ToListAsync();
+
+            var model = gymClasses.Select(g => new IndexGymClassViewModel
+            {
+                Id = g.Id,
+                Name = g.Name,
+                StartTime = g.StartTime,
+                Duration = g.Duration,
+                Description = g.Description
+            }).ToList();
+
+            return View(model);
+        }
+
+        public async Task<IActionResult> MyBookings()
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var bookedClasses = await _context.Users
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.AttendedClasses)
+                .Select(ac => ac.GymClass)
+                .Where(g => g.StartTime > DateTime.Now)
+                .ToListAsync();
+
+            var model = bookedClasses.Select(b => new IndexGymClassViewModel
+            {
+                Id = b.Id,
+                Name = b.Name,
+                StartTime = b.StartTime,
+                Duration = b.Duration,
+                Description = b.Description
+            }).ToList();
+
+            return View(model);
+        }
+
+        public async Task<IActionResult> MyHistory()
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var historicalClasses = await _context.Users
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.AttendedClasses)
+                .Select(ac => ac.GymClass)
+                .Where(g => g.StartTime < DateTime.Now)
+                .ToListAsync();
+
+            var model = historicalClasses.Select(g => new IndexGymClassViewModel
+            {
+                Id = g.Id,
+                Name = g.Name,
+                StartTime = g.StartTime,
+                Duration = g.Duration,
+                Description = g.Description
+            }).ToList();
+
+            return View(model);
         }
 
         // GET: GymClasses/Details/5
@@ -77,59 +165,53 @@ namespace PassBokning.Controllers
                 return NotFound();
             }
 
-            var gymClass = await _context.GymClasses
-                .Include(g => g.AttendingMembers)
-                .ThenInclude(a => a.ApplicationUser)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (gymClass == null)
+            var gymClassWithAttendees = await _context.GymClasses
+                .Where(g => g.Id == id)
+                .Include(c => c.AttendingMembers)
+                .ThenInclude(u => u.ApplicationUser).FirstOrDefaultAsync();
+
+            if (gymClassWithAttendees == null)
             {
                 return NotFound();
             }
 
-            return View(gymClass);
+            return View(gymClassWithAttendees);
         }
 
-        // Index och Details behöver inte [Authorize] eftersom alla ska kunna se passen
         // GET: GymClasses/Create
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: GymClasses/Create
-       
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [Authorize]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,StartTime,Duration,Description")] GymClass gymClass)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(CreateGymClassViewModel viewModel)
         {
             if (ModelState.IsValid)
             {
-                try
+                var gymClass = new GymClass
                 {
-                    _context.Add(gymClass);
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (Exception ex)
-                {
-                    // Add this temporarily for debugging
-                    ModelState.AddModelError(string.Empty, "Error saving to database: " + ex.Message);
-                }
-            }
+                    Name = viewModel.Name,
+                    StartTime = viewModel.StartTime,
+                    Duration = viewModel.Duration,
+                    Description = viewModel.Description
+                };
 
-            // Add this temporarily for debugging
-            foreach (var modelError in ModelState.Values.SelectMany(v => v.Errors))
-            {
-                ModelState.AddModelError(string.Empty, modelError.ErrorMessage);
+                _context.Add(gymClass);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
             }
-
-            return View(gymClass);
+            return View(viewModel);
         }
 
         // GET: GymClasses/Edit/5
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -149,9 +231,9 @@ namespace PassBokning.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [Authorize]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description")] GymClass gymClass)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,StartTime,Duration,Description")] GymClass gymClass)
         {
             if (id != gymClass.Id)
             {
@@ -182,7 +264,7 @@ namespace PassBokning.Controllers
         }
 
         // GET: GymClasses/Delete/5
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -202,8 +284,8 @@ namespace PassBokning.Controllers
 
         // POST: GymClasses/Delete/5
         [HttpPost, ActionName("Delete")]
-        [Authorize]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var gymClass = await _context.GymClasses.FindAsync(id);
@@ -214,7 +296,7 @@ namespace PassBokning.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
-        }
+        }        
 
         private bool GymClassExists(int id)
         {

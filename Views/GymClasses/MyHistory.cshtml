@@ -1,17 +1,11 @@
 ﻿@model IEnumerable<PassBokning.Models.ViewModels.IndexGymClassViewModel>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "My history";
 }
 
-<h1>Index</h1>
-@if (User.IsInRole("Admin"))
-{
-    <p>
-        <a asp-action="Create">Create New</a>
-    </p>
+<h1>My History</h1>
 
-}
 <table class="table">
     <thead>
         <tr>
